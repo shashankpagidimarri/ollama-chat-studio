@@ -18,7 +18,7 @@ A modern desktop application for interacting with Ollama AI models with a clean 
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/ollama-chat-studio.git
+git clone https://github.com/shashankpagidimarri/ollama-chat-studio.git
 cd ollama-chat-studio
 
 # Create directories
@@ -34,12 +34,6 @@ pip install -r requirements.txt
 python main.py
 ```
 
-## Dependencies
-
-```bash
-PyQt6>=6.5.0
-requests>=2.28.0
-```
 
 ## Usage
 
