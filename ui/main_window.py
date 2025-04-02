@@ -5,15 +5,14 @@ import requests
 from datetime import datetime
 from pathlib import Path
 from database import DatabaseManager
-
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                             QTextEdit, QPushButton, QSplitter, QComboBox, 
                             QLabel, QFileDialog, QScrollArea, QCheckBox,
                             QStatusBar, QProgressBar, QMenu, QMenuBar,
-                            QToolBar, QDialog, QFrame, QSizePolicy, QMessageBox)
+                            QToolBar, QDialog, QFrame, QSizePolicy, QMessageBox,QApplication)
 from PyQt6.QtCore import Qt, QSize, QTimer
 from PyQt6.QtGui import QPixmap, QIcon, QFont, QAction
-
+from PyQt6.QtCore import QPropertyAnimation, QRect
 # Import our modules
 from ui.message_widget import MessageWidget
 # In main_window.py
@@ -149,20 +148,69 @@ class OllamaChatUI(QMainWindow):
     # Rest of the method remains the same...
         
     def create_toolbar(self):
-        """Create the main toolbar"""
+        """Create the main toolbar with icons and styled controls"""
         toolbar = QToolBar("Main Toolbar")
         toolbar.setMovable(False)
-        toolbar.setIconSize(QSize(20, 20))
+        toolbar.setIconSize(QSize(18, 18))
+        toolbar.setStyleSheet("""
+            QToolBar {
+                background-color: #202123;
+                border-bottom: 1px solid #2D3748;
+                spacing: 5px;
+                padding: 5px;
+            }
+            QToolButton {
+                background-color: transparent;
+                border-radius: 4px;
+                padding: 4px;
+            }
+            QToolButton:hover {
+                background-color: rgba(255, 255, 255, 0.1);
+            }
+            QToolButton:pressed {
+                background-color: rgba(255, 255, 255, 0.05);
+            }
+        """)
         self.addToolBar(toolbar)
         
-        # Model selector
-        toolbar.addWidget(QLabel("Model:"))
+        # Model selector label
+        model_label = QLabel("Model:")
+        model_label.setStyleSheet("color: #E2E8F0; margin-right: 5px;")
+        toolbar.addWidget(model_label)
+        
+        # Model selector dropdown
         self.model_selector = QComboBox()
         self.model_selector.setMinimumWidth(150)
+        self.model_selector.setStyleSheet("""
+            QComboBox {
+                background-color: #2D3748;
+                color: white;
+                border-radius: 4px;
+                padding: 4px 8px;
+                border: 1px solid #4A5568;
+                min-width: 150px;
+            }
+            QComboBox::drop-down {
+                border: none;
+                padding-right: 15px;
+            }
+            QComboBox::down-arrow {
+                width: 10px;
+                height: 10px;
+                image: url(icons/down-arrow.png);
+            }
+            QComboBox QAbstractItemView {
+                background-color: #2D3748;
+                color: white;
+                selection-background-color: #10a37f;
+                border: 1px solid #4A5568;
+            }
+        """)
         toolbar.addWidget(self.model_selector)
         
         # Refresh button
-        refresh_action = QAction("Refresh", self)
+        refresh_action = QAction(QIcon("icons/refresh.png"), "Refresh Models", self)
+        refresh_action.setToolTip("Refresh available models")
         refresh_action.triggered.connect(self.refresh_models)
         toolbar.addAction(refresh_action)
         
@@ -171,15 +219,41 @@ class OllamaChatUI(QMainWindow):
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         toolbar.addWidget(spacer)
         
-        # Add model parameters button
-        params_action = QAction("Parameters", self)
+        # Parameters button
+        params_action = QAction(QIcon("icons/settings.png"), "Model Parameters", self)
+        params_action.setToolTip("Adjust model parameters")
         params_action.triggered.connect(self.show_model_params)
         toolbar.addAction(params_action)
         
-        # Add streaming toggle
+        # Add streaming toggle with custom styling
         self.stream_checkbox = QCheckBox("Enable streaming")
         self.stream_checkbox.setChecked(True)
+        self.stream_checkbox.setStyleSheet("""
+            QCheckBox {
+                color: #E2E8F0;
+                spacing: 5px;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+                border-radius: 3px;
+                border: 1px solid #4A5568;
+            }
+            QCheckBox::indicator:unchecked {
+                background-color: #2D3748;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #10a37f;
+                border: 1px solid #10a37f;
+                image: url(icons/check.png);
+            }
+            QCheckBox::indicator:hover {
+                border: 1px solid #10a37f;
+            }
+        """)
         toolbar.addWidget(self.stream_checkbox)
+        
+        return toolbar
         
     def create_chat_area(self):
         """Create the chat message area"""
@@ -197,29 +271,67 @@ class OllamaChatUI(QMainWindow):
         return scroll_area
     
     def create_input_area(self):
-        """Create the text input area"""
+        """Create the text input area with enhanced styling"""
         input_widget = QWidget()
         input_layout = QVBoxLayout(input_widget)
         
         # Image and text input
         img_input_layout = QHBoxLayout()
         
-        # Image preview
+        # Image preview with improved styling
         self.image_preview = QLabel("No image")
         self.image_preview.setFixedSize(40, 40)
         self.image_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.image_preview.setStyleSheet("background-color: #40414f; border: 1px solid #565869;")
+        self.image_preview.setStyleSheet("""
+            background-color: #2D3748; 
+            border-radius: 5px;
+            border: 1px solid #4A5568;
+            color: #A0AEC0;
+            font-size: 10px;
+        """)
         img_input_layout.addWidget(self.image_preview)
         
-        # Image upload button
+        # Image upload button with icon
         img_button = QPushButton("Add Image")
-        img_button.setObjectName("iconButton")
+        img_button.setIcon(QIcon("icons/image.png"))
+        img_button.setObjectName("secondaryButton")
+        img_button.setStyleSheet("""
+            QPushButton#secondaryButton {
+                background-color: #2D3748;
+                color: white;
+                border-radius: 4px;
+                padding: 6px 12px;
+                border: 1px solid #4A5568;
+            }
+            QPushButton#secondaryButton:hover {
+                background-color: #3C4A5B;
+            }
+            QPushButton#secondaryButton:pressed {
+                background-color: #253244;
+            }
+        """)
         img_button.clicked.connect(self.upload_image)
         img_input_layout.addWidget(img_button)
         
-        # Clear image button
+        # Clear image button with icon
         clear_img_button = QPushButton("Clear Image")
-        clear_img_button.setObjectName("iconButton")
+        clear_img_button.setIcon(QIcon("icons/clear.png"))
+        clear_img_button.setObjectName("secondaryButton")
+        clear_img_button.setStyleSheet("""
+            QPushButton#secondaryButton {
+                background-color: #2D3748;
+                color: white;
+                border-radius: 4px;
+                padding: 6px 12px;
+                border: 1px solid #4A5568;
+            }
+            QPushButton#secondaryButton:hover {
+                background-color: #3C4A5B;
+            }
+            QPushButton#secondaryButton:pressed {
+                background-color: #253244;
+            }
+        """)
         clear_img_button.clicked.connect(self.clear_image)
         img_input_layout.addWidget(clear_img_button)
         
@@ -231,23 +343,52 @@ class OllamaChatUI(QMainWindow):
         # Text input and send button
         text_input_layout = QHBoxLayout()
         
-        # Text input field
+        # Text input field with improved styling
         self.input_field = QTextEdit()
         self.input_field.setObjectName("inputField")
         self.input_field.setPlaceholderText("Type your message here...")
-        self.input_field.setMinimumHeight(60)
+        self.input_field.setMinimumHeight(80)
+        self.input_field.setStyleSheet("""
+            QTextEdit#inputField {
+                background-color: #2D3748;
+                color: white;
+                border-radius: 10px;
+                border: 1px solid #4A5568;
+                padding: 8px 12px;
+                selection-background-color: #10a37f;
+            }
+            QTextEdit#inputField:focus {
+                border: 1px solid #10a37f;
+            }
+        """)
         text_input_layout.addWidget(self.input_field)
         
-        # Send button
+        # Send button with icon
         send_button = QPushButton("Send")
-        send_button.setMinimumWidth(80)
+        send_button.setIcon(QIcon("icons/send.png"))
+        send_button.setMinimumWidth(100)
+        send_button.setStyleSheet("""
+            QPushButton {
+                background-color: #10a37f;
+                color: white;
+                border-radius: 10px;
+                padding: 10px 15px;
+                border: none;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #0D8B6C;
+            }
+            QPushButton:pressed {
+                background-color: #0A725A;
+            }
+        """)
         send_button.clicked.connect(self.send_message)
         text_input_layout.addWidget(send_button)
         
         input_layout.addLayout(text_input_layout)
         
         return input_widget
-    # Add these methods to the OllamaChatUI class
 
     def save_current_conversation(self):
     
@@ -343,14 +484,37 @@ class OllamaChatUI(QMainWindow):
             self.load_conversation(dialog.selected_conversation_id)
 
     def create_status_bar(self):
-        """Create the status bar"""
+        """Create a styled status bar"""
         status_bar = QStatusBar()
+        status_bar.setStyleSheet("""
+            QStatusBar {
+                background-color: #1A202C;
+                color: #CBD5E0;
+                border-top: 1px solid #2D3748;
+                padding: 2px 10px;
+                font-size: 11px;
+            }
+        """)
         self.setStatusBar(status_bar)
         
-        # Progress bar for generation
+        # Progress bar for generation with improved styling
         self.progress_bar = QProgressBar()
         self.progress_bar.setMaximumWidth(150)
         self.progress_bar.setVisible(False)
+        self.progress_bar.setStyleSheet("""
+            QProgressBar {
+                border: 1px solid #4A5568;
+                border-radius: 4px;
+                text-align: center;
+                background-color: #2D3748;
+                color: white;
+                height: 14px;
+            }
+            QProgressBar::chunk {
+                background-color: #10a37f;
+                border-radius: 3px;
+            }
+        """)
         status_bar.addPermanentWidget(self.progress_bar)
         
         # Status message
@@ -386,11 +550,35 @@ class OllamaChatUI(QMainWindow):
             ))
     
     def send_message(self):
-        """Send the current message"""
+        """Send the current message with button animation"""
         message = self.input_field.toPlainText().strip()
         if not message:
             return
+        
+        # Find the send button for animation
+        send_button = None
+        for child in self.findChildren(QPushButton):
+            if child.text() == "Send":
+                send_button = child
+                break
+        
+        # Apply animation if found
+        if send_button:
+            animation = QPropertyAnimation(send_button, b"geometry")
+            animation.setDuration(100)
+            current_geometry = send_button.geometry()
+            animation.setStartValue(current_geometry)
             
+            # Slightly smaller for "pressed" effect
+            pressed_geometry = QRect(
+                current_geometry.x() + 2, 
+                current_geometry.y() + 2,
+                current_geometry.width() - 4, 
+                current_geometry.height() - 4
+            )
+            animation.setEndValue(pressed_geometry)
+            animation.start()
+                
         # Add user message to UI
         self.add_message(message, is_user=True)
         
@@ -617,14 +805,27 @@ class OllamaChatUI(QMainWindow):
         # Reset the current conversation ID
         self.current_conversation_id = None
         
-        # Clear chat UI
+        # Clear chat UI - remove all existing widgets
         for i in reversed(range(self.chat_layout.count())):
             widget = self.chat_layout.itemAt(i).widget()
             if widget:
                 widget.deleteLater()
         
-        # Add welcome message
-        self.add_message("Hello! I'm your Ollama-powered assistant. How can I help you today?", is_user=False)
+        # Force UI update before adding new content
+        QApplication.processEvents()
+        
+        # Create a welcome message explicitly
+        welcome_widget = MessageWidget(is_user=False, text="Hello! I'm your Ollama-powered assistant. How can I help you today?")
+        self.chat_layout.addWidget(welcome_widget)
+        
+        # Add to conversation history to maintain context
+        self.conversation.append({
+            "role": "assistant", 
+            "content": "Hello! I'm your Ollama-powered assistant. How can I help you today?"
+        })
+        
+        # Force another UI update to ensure the message appears
+        QApplication.processEvents()
         
         # Update status
         self.status_message.setText("New chat started")

@@ -16,31 +16,54 @@ class MessageWidget(QFrame):
         
     def init_ui(self):
         self.setFrameShape(QFrame.Shape.StyledPanel)
-        self.setLineWidth(1)
+        self.setLineWidth(0)  # Remove border line
         
-        # Set object name for styling based on message type
+        # Set object name for styling
         self.setObjectName("userMessage" if self.is_user else "assistantMessage")
+        
+        # Apply enhanced styling with gradients and shadows
+        if self.is_user:
+            self.setStyleSheet("""
+                #userMessage {
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #2A2F3B, stop:1 #353B48);
+                    color: white;
+                    border-radius: 12px;
+                    margin: 2px 10px 2px 50px;  /* More space on the left */
+                    padding: 2px;
+                }
+            """)
+        else:
+            self.setStyleSheet("""
+                #assistantMessage {
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #40454F, stop:1 #4A5568);
+                    color: white;
+                    border-radius: 12px;
+                    margin: 2px 50px 2px 10px;  /* More space on the right */
+                    padding: 2px;
+                    border-left: 3px solid #10a37f;  /* Green accent like Claude */
+                }
+            """)
             
         # Main layout
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(12, 12, 12, 12)
         main_layout.setSpacing(4)
         
-        # Header layout with icon, role, and timestamp
+        # Header layout with icon and role
         header_layout = QHBoxLayout()
         
         # Role icon
         icon_label = QLabel()
         icon_size = 20
         if self.is_user:
-            icon_label.setText("👤")  # User icon
+            icon_label.setText("👤")  # Replace with proper icon in resources
         else:
-            icon_label.setText("🤖")  # Bot icon
+            icon_label.setText("🤖")  # Replace with proper icon in resources
         icon_label.setFixedSize(icon_size, icon_size)
         header_layout.addWidget(icon_label)
         
         # Role text
-        role_label = QLabel("You" if self.is_user else "Ollama Assistant")
+        role_label = QLabel("You" if self.is_user else "Assistant")
         role_label.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
         header_layout.addWidget(role_label)
         
@@ -62,36 +85,68 @@ class MessageWidget(QFrame):
         self.messageText.setMinimumHeight(40)
         self.messageText.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         
-        # Set text color and styling via object name
-        self.messageText.setObjectName("userMessageText" if self.is_user else "assistantMessageText")
-        self.messageText.setStyleSheet("background-color: transparent; border: none;")
+        # Enhanced text styling
+        self.messageText.setStyleSheet("""
+            background-color: transparent; 
+            border: none;
+            color: white;
+            font-family: 'Segoe UI';
+            padding: 5px;
+        """)
         
         # Set font
         self.messageText.setFont(QFont("Segoe UI", 10))
         
-        # Set initial text if provided
-        if self.text:
-            self.set_text(self.text)
-            
         main_layout.addWidget(self.messageText)
         
-        # Action buttons layout
+        # Action buttons layout - (copy, regenerate, etc.)
         action_layout = QHBoxLayout()
-        action_layout.setContentsMargins(0, 4, 0, 0)
+        action_layout.setContentsMargins(0, 8, 0, 0)
         
-        # Copy button
+        # Copy button with enhanced styling
         copy_btn = QPushButton("Copy")
-        copy_btn.setObjectName("iconButton")
-        copy_btn.setFixedSize(60, 24)
+        copy_btn.setObjectName("actionButton")
+        copy_btn.setFixedSize(70, 28)
+        copy_btn.setStyleSheet("""
+            QPushButton#actionButton {
+                background-color: rgba(255, 255, 255, 0.1);
+                color: rgba(255, 255, 255, 0.8);
+                border-radius: 4px;
+                border: none;
+                padding: 4px 8px;
+                font-size: 9pt;
+            }
+            QPushButton#actionButton:hover {
+                background-color: rgba(255, 255, 255, 0.2);
+            }
+            QPushButton#actionButton:pressed {
+                background-color: rgba(255, 255, 255, 0.15);
+            }
+        """)
         copy_btn.clicked.connect(self.copy_text)
         action_layout.addWidget(copy_btn)
         
         # Only show regenerate for assistant messages
         if not self.is_user:
             regenerate_btn = QPushButton("Regenerate")
-            regenerate_btn.setObjectName("iconButton")
-            regenerate_btn.setFixedSize(90, 24)
-            # We'll connect this in the main window
+            regenerate_btn.setObjectName("actionButton")
+            regenerate_btn.setFixedSize(90, 28)
+            regenerate_btn.setStyleSheet("""
+                QPushButton#actionButton {
+                    background-color: rgba(255, 255, 255, 0.1);
+                    color: rgba(255, 255, 255, 0.8);
+                    border-radius: 4px;
+                    border: none;
+                    padding: 4px 8px;
+                    font-size: 9pt;
+                }
+                QPushButton#actionButton:hover {
+                    background-color: rgba(255, 255, 255, 0.2);
+                }
+                QPushButton#actionButton:pressed {
+                    background-color: rgba(255, 255, 255, 0.15);
+                }
+            """)
             self.regenerate_btn = regenerate_btn
             action_layout.addWidget(regenerate_btn)
         
