@@ -14,6 +14,10 @@ class MessageWidget(QFrame):
         self.text = text
         self.init_ui()
         
+        # Make sure text is set after UI is initialized
+        if text:
+            self.messageText.setPlainText(text)
+        
     def init_ui(self):
         self.setFrameShape(QFrame.Shape.StyledPanel)
         self.setLineWidth(0)  # Remove border line
@@ -156,18 +160,19 @@ class MessageWidget(QFrame):
         main_layout.addLayout(action_layout)
         
     def set_text(self, text):
+        """Set the text content of the message"""
+        if not text:
+            return  # Don't set empty text
+            
         self.text = text
         self.messageText.setPlainText(text)
         
+        # Debug output
+        print(f"Setting text: '{text}'")
+        
         # Adjust height based on content
         document_height = self.messageText.document().size().height()
-        self.messageText.setMinimumHeight(min(400, max(60, int(document_height + 30))))
-        
-        # Make sure vertical scrollbar appears if needed
-        self.messageText.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        
-        # Force layout update
-        self.layout().update()
+        self.messageText.setMinimumHeight(min(400, max(40, int(document_height + 20))))
         
     def get_text(self):
         """Get the text content of the message"""

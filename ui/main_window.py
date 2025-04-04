@@ -449,20 +449,31 @@ class OllamaChatUI(QMainWindow):
         self.current_conversation_id = conversation_id
         
         # Load the conversation data
-        self.conversation = conversation["messages"]
+        self.conversation = []  # Reset to make sure we're clean
         
         # Update the UI with messages
-        for msg in self.conversation:
+        for msg in conversation["messages"]:
             is_user = msg["role"] == "user"
             content = msg["content"]
             
+            # Debug output
+            print(f"Loading message: {is_user}, {content[:30]}...")
+            
+            # Skip empty messages
+            if not content:
+                continue
+                
             # Handle messages with images
             if isinstance(content, dict) and "image_path" in content:
-                # TODO: Handle displaying images from saved conversations
-                # For now, just show the text portion
-                self.add_message(content["text"], is_user=is_user)
+                text_content = content.get("text", "")
+                if text_content:  # Only add if there's text
+                    self.add_message(text_content, is_user=is_user)
+                    # Add to conversation properly too
+                    self.conversation.append({"role": msg["role"], "content": content})
             else:
                 self.add_message(content, is_user=is_user)
+                # Add to conversation
+                self.conversation.append({"role": msg["role"], "content": content})
         
         # Update status
         self.status_message.setText(f"Loaded conversation: {conversation['title']}")
@@ -523,11 +534,15 @@ class OllamaChatUI(QMainWindow):
         
     def add_message(self, text, is_user=True):
         """Add a message to the chat"""
+        if not text:  # Don't add empty messages
+            print("Warning: Attempted to add empty message")
+            return
+            
         timestamp = datetime.now().strftime("%H:%M:%S")
         message_widget = MessageWidget(is_user, text, timestamp)
         
         # Set timestamp visibility based on settings
-        message_widget.set_show_timestamp(self.conversation_settings["show_timestamps"])
+        message_widget.set_show_timestamp(self.conversation_settings.get("show_timestamps", True))
         
         # Connect regenerate button if it's an assistant message
         if not is_user and hasattr(message_widget, 'regenerate_btn'):
@@ -537,7 +552,10 @@ class OllamaChatUI(QMainWindow):
         
         self.chat_layout.addWidget(message_widget)
         
-        # Auto scroll to bottom
+        # Debug output
+        print(f"Added message: {text[:30]}...")
+    
+    # Auto scroll to bottom
         QTimer.singleShot(100, self.scroll_to_bottom)
         
     def scroll_to_bottom(self):
